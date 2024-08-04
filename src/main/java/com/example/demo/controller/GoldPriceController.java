@@ -17,9 +17,10 @@ public class GoldPriceController {
     private GoldPriceService goldPriceService;
 
     @GetMapping("/save")
-    public String getCurrentGoldPrice(@RequestParam String date) {
-        LocalDate localDate = LocalDate.parse(date);
-        goldPriceService.writeGoldPriceToFile(localDate);
+    public String getCurrentGoldPrice(@RequestParam String startDate) {
+        LocalDate start = LocalDate.parse(startDate);
+        LocalDate end = LocalDate.now().minusDays(1);
+        goldPriceService.writeGoldPriceToFile(start,end);
         return goldPriceService.getFilePath();
     }
 }

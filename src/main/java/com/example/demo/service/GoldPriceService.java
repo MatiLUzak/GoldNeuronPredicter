@@ -42,7 +42,8 @@ public class GoldPriceService {
 
         return response.getBody();
     }
-    public void writeGoldPriceToFile(LocalDate date) {
+    public void writeGoldPriceToFile(LocalDate date,LocalDate endDate) {
+        while(!date.isAfter(endDate)) {
         String price=getGoldPrice(date);
         String data=price + System.lineSeparator();
         try {
@@ -51,6 +52,8 @@ public class GoldPriceService {
             fileWriter.close();
         } catch (IOException e) {
             throw new RuntimeException(e);
+        }
+        date=date.plusDays(1);
         }
     }
 }
