@@ -8,6 +8,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import java.io.FileWriter;
+import java.io.IOException;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+
 @Service
 public class GoldPriceService {
 
@@ -17,15 +22,35 @@ public class GoldPriceService {
     @Value("${goldapi.key}")
     private String apiKey;
 
-    public String getGoldPrice() {
+    @Value("${goldapi.file.path}")
+    private String filePath;
+
+    public String getFilePath() {
+        return filePath;
+    }
+
+    public String getGoldPrice(LocalDate date) {
         RestTemplate restTemplate = new RestTemplate();
 
         HttpHeaders headers = new HttpHeaders();
         headers.set("x-access-token", apiKey);
 
+        String urlWithDate=apiUrl+"/" + date.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+
         HttpEntity<String> entity = new HttpEntity<>(headers);
-        ResponseEntity<String> response = restTemplate.exchange(apiUrl, HttpMethod.GET, entity, String.class);
+        ResponseEntity<String> response = restTemplate.exchange(urlWithDate, HttpMethod.GET, entity, String.class);
 
         return response.getBody();
+    }
+    public void writeGoldPriceToFile(LocalDate date) {
+        String price=getGoldPrice(date);
+        String data=price + System.lineSeparator();
+        try {
+            FileWriter fileWriter = new FileWriter(filePath,true);
+            fileWriter.write(data);
+            fileWriter.close();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 }
