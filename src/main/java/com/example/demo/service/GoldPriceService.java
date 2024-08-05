@@ -2,10 +2,10 @@ package com.example.demo.service;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import java.io.FileWriter;
@@ -19,9 +19,6 @@ public class GoldPriceService {
     @Value("${goldapi.url}")
     private String apiUrl;
 
-    @Value("${goldapi.key}")
-    private String apiKey;
-
     @Value("${goldapi.file.path}")
     private String filePath;
 
@@ -31,29 +28,33 @@ public class GoldPriceService {
 
     public String getGoldPrice(LocalDate date) {
         RestTemplate restTemplate = new RestTemplate();
+        String urlWithDate = apiUrl + "/" + date.format(DateTimeFormatter.ISO_DATE) + "/";
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.set("x-access-token", apiKey);
-
-        String urlWithDate=apiUrl+"/" + date.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-
-        HttpEntity<String> entity = new HttpEntity<>(headers);
-        ResponseEntity<String> response = restTemplate.exchange(urlWithDate, HttpMethod.GET, entity, String.class);
-
-        return response.getBody();
-    }
-    public void writeGoldPriceToFile(LocalDate date,LocalDate endDate) {
-        while(!date.isAfter(endDate)) {
-        String price=getGoldPrice(date);
-        String data=price + System.lineSeparator();
         try {
-            FileWriter fileWriter = new FileWriter(filePath,true);
-            fileWriter.write(data);
-            fileWriter.close();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+            ResponseEntity<String> response = restTemplate.exchange(urlWithDate, HttpMethod.GET, HttpEntity.EMPTY, String.class);
+            return response.getBody();
+        } catch (HttpClientErrorException e) {
+            if (e.getStatusCode().value() == 404) {
+                System.out.println("No data found for date: " + date);
+                return null;
+            } else {
+                throw e;
+            }
         }
-        date=date.plusDays(1);
+    }
+
+    public void writeGoldPriceToFile(LocalDate startDate, LocalDate endDate) {
+        while (!startDate.isAfter(endDate)) {
+            String price = getGoldPrice(startDate);
+            if (price != null) {
+                String data = price + System.lineSeparator();
+                try (FileWriter fileWriter = new FileWriter(filePath, true)) {
+                    fileWriter.write(data);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+            startDate = startDate.plusDays(1);
         }
     }
 }
