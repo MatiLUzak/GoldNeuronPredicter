@@ -26,16 +26,16 @@ public class GoldPriceService {
         return filePath;
     }
 
-    public String getGoldPrice(LocalDate date) {
+    public String getGoldPrice(LocalDate date1, LocalDate date2) {
         RestTemplate restTemplate = new RestTemplate();
-        String urlWithDate = apiUrl + "/" + date.format(DateTimeFormatter.ISO_DATE) + "/";
+        String urlWithDate = apiUrl + "/" + date1.format(DateTimeFormatter.ISO_DATE) + "/"+date2.format(DateTimeFormatter.ISO_DATE)+"/";
 
         try {
             ResponseEntity<String> response = restTemplate.exchange(urlWithDate, HttpMethod.GET, HttpEntity.EMPTY, String.class);
             return response.getBody();
         } catch (HttpClientErrorException e) {
             if (e.getStatusCode().value() == 404) {
-                System.out.println("No data found for date: " + date);
+                System.out.println("No data found for date: " + date1+" and date: " + date2);
                 return null;
             } else {
                 throw e;
@@ -44,8 +44,7 @@ public class GoldPriceService {
     }
 
     public void writeGoldPriceToFile(LocalDate startDate, LocalDate endDate) {
-        while (!startDate.isAfter(endDate)) {
-            String price = getGoldPrice(startDate);
+            String price = getGoldPrice(startDate, endDate);
             if (price != null) {
                 String data = price + System.lineSeparator();
                 try (FileWriter fileWriter = new FileWriter(filePath, true)) {
@@ -53,8 +52,6 @@ public class GoldPriceService {
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
-            }
-            startDate = startDate.plusDays(1);
         }
     }
 }
